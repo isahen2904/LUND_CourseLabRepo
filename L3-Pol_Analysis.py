@@ -28,7 +28,7 @@ Dat2    = [signal.savgol_filter(Dat[n][:,1], 51, 3) for n in range(len(Dat))] #W
 PLoc    = [signal.find_peaks(abs(Dat2[n]-max(Dat2[n])),width=20) for n in range(len(Dat))]      #We use a peak finder to determine the indices of all valleys
 PLoc[3] = signal.find_peaks(Dat[3][:,1],width=8)    #We use a peak finder to determine the indices of all valleys
 
-NSel   = [7,17,27]
+NSel   = [13,17,27]
 NMod   = [NSel[n] - NSel[0] for n in range(len(NSel))]
 biflam = [Dat[3][PLoc[3][0][NSel[n]],0] for n in range(len(NSel))]
 a = 2
