@@ -22,12 +22,66 @@ for Name in range(len(DList)):
 
     Dat.append(np.array([(float(elemlist[n][1]),float(elemlist[n][2])) for n in range(len(elemlist))]) )
 #Index 4->13 is crystal rotations 0:5:45
+d     = 10**-3*np.array([0.24, 1.00, 3.00, 9.02])
 
-Dat2 = [signal.savgol_filter(Dat[n][:,1], 51, 3) for n in range(len(Dat))] #We smooth out all signals, since they were pretty rough
-PLoc = [signal.find_peaks(Dat2[n],width=20) for n in range(len(Dat))]      #We use a peak finder to determine the indices of all peaks
-for n in range(4,12): 
-    plt.plot(Dat[n][:,0],Dat2[n][:])
-    plt.plot(Dat[n][:,0],Dat[n][:,1])
+Dat2    = [signal.savgol_filter(Dat[n][:,1], 51, 3) for n in range(len(Dat))] #We smooth out all signals, since they were pretty rough
+PLoc    = [signal.find_peaks(abs(Dat2[n]-max(Dat2[n])),width=20) for n in range(len(Dat))]      #We use a peak finder to determine the indices of all valleys
+PLoc[3] = signal.find_peaks(Dat[3][:,1],width=8)    #We use a peak finder to determine the indices of all valleys
+
+NSel   = [7,17,27]
+NMod   = [NSel[n] - NSel[0] for n in range(len(NSel))]
+biflam = [Dat[3][PLoc[3][0][NSel[n]],0] for n in range(len(NSel))]
+a = 2
+D1 = 2*d[a]*(1/(biflam[0]**2 - 1/(biflam[1]**2))); D2 = 2*d[a]*(1/(biflam[2]**2 - 1/(biflam[1]**2)))
+
+
+meq  = ((biflam[2]*(1-2*NMod[2])+biflam[1]*(2*NMod[1]-1))/D2 - (biflam[0] - biflam[1]+2*NMod[1]*biflam[1])/D1)/(2*(biflam[0]-biflam[1])/(D1) - 2*(biflam[2]-biflam[1])/(D2))
+
+Beq  = ((2*meq+1)*(biflam[2]-biflam[1])-2*NMod[2]*biflam[2] + 2*NMod[1]*biflam[1])/D2
+
+Aeq  = ((2*(meq-NMod[1])+1)*biflam[1])/(2*d[a]) - Beq/(biflam[1]**2)
+
+#D1 = d[a]*(1/(biflam[1]**2) - 1/(biflam[0]**2)); D2 = d[a]*(1/(biflam[2]**2)-1/(biflam[0]**2))
+
+#meq = ((biflam[2]-biflam[0])/(2*D2)+(biflam[0]-biflam[1])/(2*D1) - (biflam[2]*NMod[2])/D2+(biflam[1]*NMod[1])/D1)/((biflam[1]-biflam[0])/(D1)+(biflam[0]-biflam[2])/(D2))
+#Beq  = ((2*meq + 1)*(0.5*(biflam[1]-biflam[0]))-biflam[1]*NMod[1])/(d[a]*(1/(biflam[1]**2)-1/(biflam[0]**2))) 
+#Beq2 = ((2*meq + 1)*(0.5*(biflam[2]-biflam[1]))-biflam[2]*NMod[2])/(d[a]*(1/(biflam[2]**2)-1/(biflam[0]**2))) 
+#Aeq = (2*meq+1)*biflam[0]/(2*d[a]) - Beq/(biflam[0]**2) #
+
+Test0 = (2*d[a]*(Aeq+Beq/(biflam[0]**2))/(biflam[0]) - 1)/2
+Test1 = (2*d[a]*(Aeq+Beq/(biflam[1]**2))/(biflam[1]) - 1 + 2*NMod[1])/2
+Test2 = (2*d[a]*(Aeq+Beq/(biflam[2]**2))/(biflam[2]) - 1 + 2*NMod[2])/2
+#%% Birefringeance Stuff
+fig1 = plt.figure(1)
+fig1.clf()
+ax = fig1.gca()
+for m in range(3,4): 
+    m = 3
+    ax.plot(Dat[m][:,0],Dat[m][:,1]) 
+    ax.scatter(Dat[m][PLoc[m][0],0],Dat[m][PLoc[m][0],1])
+    ax.scatter(biflam,Dat[m][PLoc[m][0][NSel],1])
+
+#%% Optical Activity Stuff:
+
+fig3 = plt.figure(3)
+fig3.clf()
+ax = fig3.gca()
+for n in range(4,14): 
+    ax.plot(Dat[n][:,0],Dat[n][:,1])
+    ax.plot(Dat[n][:,0],Dat2[n][:])
     
-for n in range(4,12):
-    plt.scatter(Dat[n][PLoc[n][0],0],Dat[n][PLoc[n][0],1])
+for n in range(4,14):
+    ax.scatter(Dat[n][PLoc[n][0],0],Dat[n][PLoc[n][0],1])
+
+beta  = np.array([0, 5, 10, 15, 20, 25, 30, 35, 40, 45])
+lambd = [10**-9*Dat[n][PLoc[n][0][-1],0] for n in range(4,14)]
+
+ 
+#beta = delta/2 = \pi/\lambda_0 * d * Dn
+Dn = [beta[n]*lambd[n]/(d[3]*np.pi) for n in range(len(beta))]    
+
+fig4 = plt.figure(4)
+fig4.clf()
+ax = fig4.gca()
+for n in range(4,14): 
+    ax.plot(lambd,Dn)
