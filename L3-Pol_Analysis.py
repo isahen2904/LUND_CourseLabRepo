@@ -8,6 +8,10 @@ import numpy as np
 import os 
 from scipy import signal
 import matplotlib.pyplot as plt
+plt.rcParams['figure.figsize'] = (7, 5)
+plt.rcParams['figure.dpi']     = 150
+
+
 Dpath = os.getcwd()+'\\oct-14\\'
 Names = os.listdir(Dpath)
 DList = [Dpath+file for file in os.listdir(Dpath) if file.endswith(".txt")]
@@ -28,9 +32,10 @@ Dat2    = [signal.savgol_filter(Dat[n][:,1], 51, 3) for n in range(len(Dat))] #W
 PLoc    = [signal.find_peaks(abs(Dat2[n]-max(Dat2[n])),width=20) for n in range(len(Dat))]      #We use a peak finder to determine the indices of all valleys
 PLoc[3] = signal.find_peaks(Dat[3][:,1],width=8)    #We use a peak finder to determine the indices of all valleys
 
-NSel   = [13,17,27]
+NSel   = [10,15,20]
 NMod   = [NSel[n] - NSel[0] for n in range(len(NSel))]
-biflam = [Dat[3][PLoc[3][0][NSel[n]],0] for n in range(len(NSel))]
+WRange = Dat[3][:,0]*10**-9
+biflam = [Dat[3][PLoc[3][0][NSel[n]],0]*10**-9 for n in range(len(NSel))]
 a = 2
 D1 = 2*d[a]*(1/(biflam[0]**2 - 1/(biflam[1]**2))); D2 = 2*d[a]*(1/(biflam[2]**2 - 1/(biflam[1]**2)))
 
@@ -51,7 +56,29 @@ Aeq  = ((2*(meq-NMod[1])+1)*biflam[1])/(2*d[a]) - Beq/(biflam[1]**2)
 Test0 = (2*d[a]*(Aeq+Beq/(biflam[0]**2))/(biflam[0]) - 1)/2
 Test1 = (2*d[a]*(Aeq+Beq/(biflam[1]**2))/(biflam[1]) - 1 + 2*NMod[1])/2
 Test2 = (2*d[a]*(Aeq+Beq/(biflam[2]**2))/(biflam[2]) - 1 + 2*NMod[2])/2
+
+#%% Alternate solution using np linalg:
+MA = np.array([[1,1/biflam[0]**2,-biflam[0]/d[a]], [1,1/biflam[1]**2,-biflam[1]/d[a]], [1,1/biflam[2]**2,-biflam[2]/d[a]]])
+MB = np.array([biflam[0]/(2*d[a]),biflam[1]/(2*d[a])-(NMod[1]*biflam[1])/(d[a]),biflam[2]/(2*d[a])-(NMod[2]*biflam[2])/(d[a])])
+ABXSolve = np.linalg.solve(MA, MB)
+print(ABXSolve)
+print(d[a])
 #%% Birefringeance Stuff
+Deltn = []
+ABTest = True
+
+for i in range(len(PLoc[3][0])):
+    if ABTest == False:
+        Deltn.append([(2*(ABXSolve[2]-i+NSel[0])+1)*(PLoc[3][0][i]*10**-9)/(2*d[a])])
+    if ABTest == True:
+        Deltn.append(ABXSolve[0]+ABXSolve[1]/(PLoc[3][0][i]*10**-9)**2)
+fig0 = plt.figure(0)
+ax = fig0.gca()
+ax.plot(PLoc[3][0],Deltn)
+plt.xlabel('Wavelength [nm]')
+plt.ylabel('Birefringeance')
+plt.grid()
+
 fig1 = plt.figure(1)
 fig1.clf()
 ax = fig1.gca()
@@ -60,7 +87,10 @@ for m in range(3,4):
     ax.plot(Dat[m][:,0],Dat[m][:,1]) 
     ax.scatter(Dat[m][PLoc[m][0],0],Dat[m][PLoc[m][0],1])
     ax.scatter(biflam,Dat[m][PLoc[m][0][NSel],1])
-
+plt.grid()
+plt.autoscale(enable=True,tight=True)
+plt.xlabel('Wavelength [nm]')
+plt.ylabel('Intensity [a.u]')
 #%% Optical Activity Stuff:
 
 fig3 = plt.figure(3)
@@ -72,11 +102,12 @@ for n in range(4,14):
     
 for n in range(4,14):
     ax.scatter(Dat[n][PLoc[n][0],0],Dat[n][PLoc[n][0],1])
-
+plt.xlabel('Wavelength [nm]')
+plt.ylabel('Intensity [a.u]')
 beta  = np.array([0, 5, 10, 15, 20, 25, 30, 35, 40, 45])
 lambd = [10**-9*Dat[n][PLoc[n][0][-1],0] for n in range(4,14)]
-
- 
+plt.grid()
+plt.autoscale(enable=True,tight=True) 
 #beta = delta/2 = \pi/\lambda_0 * d * Dn
 Dn = [beta[n]*lambd[n]/(d[3]*np.pi) for n in range(len(beta))]    
 
@@ -85,3 +116,7 @@ fig4.clf()
 ax = fig4.gca()
 for n in range(4,14): 
     ax.plot(lambd,Dn)
+plt.grid()
+plt.xlabel('Wavelength [nm]')
+plt.ylabel('Intensity [a.u]')
+plt.autoscale(enable=True,tight=True)
