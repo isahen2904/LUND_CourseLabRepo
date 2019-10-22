@@ -28,30 +28,23 @@ for Name in range(len(DList)):
 #Index 4->13 is crystal rotations 0:5:45
 d     = 10**-3*np.array([0.24, 1.00, 3.00, 9.02]) #Originally in mm => 10^3 microns
 
-Dat2    = [signal.savgol_filter(Dat[n][:,1], 51, 3) for n in range(len(Dat))] #We smooth out all signals, since they were pretty rough
+Dat2    = [signal.savgol_filter(Dat[n][:,1], 51, 10) for n in range(len(Dat))] #We smooth out all signals, since they were pretty rough
 PLoc    = [signal.find_peaks(abs(Dat2[n]-max(Dat2[n])),width=20) for n in range(len(Dat))]      #We use a peak finder to determine the indices of all valleys
-PLoc[3] = signal.find_peaks(Dat[3][:,1],width=9,prominence=50)    #We use a peak finder to determine the indices of all valleys
+PLoc[3] = signal.find_peaks(Dat2[3],width=5,prominence=9)    #We use a peak finder to determine the indices of all valleys
 
 NSel   = [5,13,21]
 NMod   = [NSel[n] - NSel[0] for n in range(len(NSel))]
 WRange = Dat[3][:,0]*10**-9
 biflam = [Dat[3][PLoc[3][0][NSel[n]],0]*10**-9 for n in range(len(NSel))]
 a = 3
-D1 = 2*d[a]*(1/(biflam[0]**2 - 1/(biflam[1]**2))); D2 = 2*d[a]*(1/(biflam[2]**2 - 1/(biflam[1]**2)))
 
 
-meq  = ((biflam[2]*(1-2*NMod[2])+biflam[1]*(2*NMod[1]-1))/D2 - (biflam[0] - biflam[1]+2*NMod[1]*biflam[1])/D1)/(2*(biflam[0]-biflam[1])/(D1) - 2*(biflam[2]-biflam[1])/(D2))
+D1 = d[a]*(1/(biflam[1]**2) - 1/(biflam[0]**2)); D2 = d[a]*(1/(biflam[2]**2)-1/(biflam[0]**2))
 
-Beq  = ((2*meq+1)*(biflam[2]-biflam[1])-2*NMod[2]*biflam[2] + 2*NMod[1]*biflam[1])/D2
-
-Aeq  = ((2*(meq-NMod[1])+1)*biflam[1])/(2*d[a]) - Beq/(biflam[1]**2)
-
-#D1 = d[a]*(1/(biflam[1]**2) - 1/(biflam[0]**2)); D2 = d[a]*(1/(biflam[2]**2)-1/(biflam[0]**2))
-
-#meq = ((biflam[2]-biflam[0])/(2*D2)+(biflam[0]-biflam[1])/(2*D1) - (biflam[2]*NMod[2])/D2+(biflam[1]*NMod[1])/D1)/((biflam[1]-biflam[0])/(D1)+(biflam[0]-biflam[2])/(D2))
-#Beq  = ((2*meq + 1)*(0.5*(biflam[1]-biflam[0]))-biflam[1]*NMod[1])/(d[a]*(1/(biflam[1]**2)-1/(biflam[0]**2))) 
-#Beq2 = ((2*meq + 1)*(0.5*(biflam[2]-biflam[1]))-biflam[2]*NMod[2])/(d[a]*(1/(biflam[2]**2)-1/(biflam[0]**2))) 
-#Aeq = (2*meq+1)*biflam[0]/(2*d[a]) - Beq/(biflam[0]**2) #
+meq = ((biflam[2]-biflam[0])/(2*D2)+(biflam[0]-biflam[1])/(2*D1) - (biflam[2]*NMod[2])/D2+(biflam[1]*NMod[1])/D1)/((biflam[1]-biflam[0])/(D1)+(biflam[0]-biflam[2])/(D2))
+Beq  = ((2*meq + 1)*(0.5*(biflam[1]-biflam[0]))-biflam[1]*NMod[1])/(d[a]*(1/(biflam[1]**2)-1/(biflam[0]**2))) 
+Beq2 = ((2*meq + 1)*(0.5*(biflam[2]-biflam[1]))-biflam[2]*NMod[2])/(d[a]*(1/(biflam[2]**2)-1/(biflam[0]**2))) 
+Aeq = (2*meq+1)*biflam[0]/(2*d[a]) - Beq/(biflam[0]**2) #
 
 Test0 = (2*d[a]*(Aeq+Beq/(biflam[0]**2))/(biflam[0]) - 1)/2
 Test1 = (2*d[a]*(Aeq+Beq/(biflam[1]**2))/(biflam[1]) - 1 + 2*NMod[1])/2
@@ -75,14 +68,14 @@ for i in range(0,len(PLoc[3][0])):
     if ABTest == False:
         Deltn.append((2*(ABXSolve[2]-i))*(Dat[3][PLoc[3][0][i],0]*10**-9)/(2*d[a]))
     if ABTest == True:
-        Deltn.append(ABXSolve[0]+ABXSolve[1]/(Dat[3][PLoc[3][0][i],0]*10**-9)**2)
+        Deltn.append((ABXSolve[0]+ABXSolve[1]/(Dat[3][PLoc[3][0][i],0]*10**-9)**2))
 DELTN = [Deltn[0]-Deltn[i] for i in range(1,len(Deltn))]
 fig0 = plt.figure(0)
 ax = fig0.gca()
-ax.plot(Dat[3][PLoc[3][0],0]*10**-9,Deltn)
-#ax.plot(PLoc[3][0],DELTN)
+#ax.plot(Dat[3][PLoc[3][0],0],Deltn)
+ax.plot(Dat[3][PLoc[3][0][1:],0],DELTN)
 plt.xlabel('Wavelength [nm]')
-plt.ylabel('Birefringeance')
+plt.ylabel('$\Delta$ n')
 plt.grid()
 
 fig1 = plt.figure(1)
@@ -123,6 +116,16 @@ ax = fig4.gca()
 for n in range(4,14): 
     ax.plot(lambd,Dn)
 plt.grid()
-plt.xlabel('Wavelength [nm]')
-plt.ylabel('Intensity [a.u]')
+plt.xlabel('Wavelength [m]')
+plt.ylabel('$\Delta$ n ')
+plt.autoscale(enable=True,tight=True)
+
+fig4 = plt.figure(5)
+fig4.clf()
+ax = fig4.gca()
+for n in range(4,14): 
+    ax.plot(lambd,beta)
+plt.grid()
+plt.xlabel('Wavelength[m] ')
+plt.ylabel('$Beta$')
 plt.autoscale(enable=True,tight=True)
